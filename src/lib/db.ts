@@ -96,25 +96,24 @@ export const addSale = (total: number, items: Array<{productId: number, quantity
     db.run('BEGIN TRANSACTION');
 
     // Validate all items before processing
-    items.forEach(item => {
+    for (const item of items) {
       if (!item.productId || !item.quantity || !item.price) {
         throw new Error('Invalid item data');
       }
 
-      const stockResult = db.exec(
-        'SELECT stock FROM products WHERE id = ? AND stock >= ?',
-        [item.productId, item.quantity]
-      );
+      const stockStmt = db.prepare('SELECT stock FROM products WHERE id = ? AND stock >= ?');
+      const stockResult = stockStmt.get([item.productId, item.quantity]);
+      stockStmt.free();
 
-      if (!stockResult.length || !stockResult[0].values.length) {
+      if (!stockResult) {
         throw new Error(`Insufficient stock for product ${item.productId}`);
       }
-    });
+    }
 
     // Insert sale record
     const saleStmt = db.prepare('INSERT INTO sales (total) VALUES (?)');
-    const saleResult = saleStmt.run([total]);
-    const saleId = saleResult.lastInsertRowid;
+    saleStmt.run([total]);
+    const saleId = db.exec('SELECT last_insert_rowid()')[0].values[0][0];
     saleStmt.free();
 
     // Insert sale items and update stock
@@ -125,10 +124,10 @@ export const addSale = (total: number, items: Array<{productId: number, quantity
       'UPDATE products SET stock = stock - ? WHERE id = ?'
     );
 
-    items.forEach(item => {
+    for (const item of items) {
       insertItemStmt.run([saleId, item.productId, item.quantity, item.price]);
       updateStockStmt.run([item.quantity, item.productId]);
-    });
+    }
 
     insertItemStmt.free();
     updateStockStmt.free();
