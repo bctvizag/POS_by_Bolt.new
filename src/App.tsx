@@ -120,7 +120,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-2">
             <Store className="text-blue-600" size={24} />
-            <h1 className="text-xl font-semibold">Modern POS System</h1>
+            <h1 className="text-xl font-semibold">BCT POS System</h1>
           </div>
         </div>
       </header>
